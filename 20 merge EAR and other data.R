@@ -1,0 +1,289 @@
+library(sf)
+library(tidyverse)
+library(tidycensus)
+library(areal)
+
+library(openxlsx)
+library(lubridate)
+
+theme_set(theme_minimal() + 
+            theme(plot.title.position = "plot", 
+                  plot.caption.position = "plot"))
+
+## below gets unstandardized rates
+
+# water_rates_download_url <- "https://data.ca.gov/dataset/21415426-f919-4f79-a1cf-7804a9110152/resource/ebac19f0-618f-4d5f-8610-c826877b66c2/download/standard-1218-public-only.csv"
+# 
+# cali_water_rates <- read_csv(water_rates_download_url)
+# 
+# cali_water_rates <- cali_water_rates %>%
+#   janitor::clean_names()
+
+## EAR data
+
+if(!(file.exists(here::here("data", "earsurveyresults_2018ry.zip")))){
+  EAR_url_2018 <- "https://www.waterboards.ca.gov/drinking_water/certlic/drinkingwater/documents/ear/earsurveyresults_2018ry.zip"
+  
+  temp <- tempfile()
+  download.file(EAR_url_2018, destfile = here::here("data", "earsurveyresults_2018ry.zip"))
+  unzip(here::here("data", "earsurveyresults_2018ry.zip"), exdir = here::here("data"))
+  unlink(temp)
+}
+
+## some rows don't parse correctly--appears to be issue in data file
+EAR_data_2018 <- read_tsv(here::here("data", "EARSurveyResults_2018RY.txt"))
+
+EAR_standard_rates <- EAR_data_2018 %>%
+  filter(str_detect(QuestionName, "HCF Total WBill")) %>%
+  select(PWSID, Survey, QuestionName, QuestionResults) %>%
+  pivot_wider(names_from = "QuestionName", values_from = "QuestionResults") %>%
+  janitor::clean_names() %>%
+  rename(PWSID = pwsid)
+
+rm(EAR_data_2018)
+
+## read in Service Area Boundaries
+
+cali_geojson <- read_sf(here::here("data", "California_Drinking_Water_System_Area_Boundaries.geojson"))
+
+cali_data <- cali_geojson %>%
+  select(PWSID, NAME, geometry) %>%
+  left_join(EAR_standard_rates) %>%
+  mutate(wr_12_hcf_total_w_bill = as.numeric(wr_12_hcf_total_w_bill))
+
+cali <- map_data("state", region = "california")
+ggplot() + 
+  geom_polygon(data = cali,
+               aes(x=long, y = lat, group = group),
+               fill = NA, color = "black", size = .25) +
+  geom_sf(data = cali_geojson) +
+  ggthemes::theme_map()
+
+
+## load variable names, if needed, cache should speed later calls according 
+## to docs
+v18 <- load_variables(2018, "acs5", cache = TRUE)
+
+
+## replace with your own Census API Key
+## http://api.census.gov/data/key_signup.html
+
+options(tigris_use_cache = TRUE)
+source(here::here("will_api_key.R"))
+census_api_key(wills_api_key, install = TRUE)
+
+
+
+cali_acs_income <- get_acs(state = "CA", geography = "block group",
+                    variables = c(median_income = "B19013_001"),
+                    geometry = TRUE)
+
+## need to transform to common coordinate reference system: the boundary files
+## and ACS data had different ones, neither of which worked w/ the areal pkg
+cali_acs_income2 <- st_transform(cali_acs_income, crs = 26915) %>%
+  select(-NAME, -variable, -moe)
+
+  
+## got some error about a self-intersecting polygon, this is a fix
+## I don't really know what I am doing
+cali_data <- st_transform(cali_data, crs = 26915) %>%
+  st_buffer(., dist = 0)
+
+## verify all true for interpolation
+ar_validate(cali_acs_income2, cali_data, varList = "estimate", verbose = TRUE)
+
+cali_interpolated_inc <- aw_interpolate(cali_data,
+                                    tid = PWSID,
+                                    source = cali_acs_income2,
+                                    sid = GEOID,
+                                    weight = "sum",
+                                    output = "sf",
+                                    intensive = "estimate")
+
+sum(is.na(cali_interpolated_inc$estimate))
+
+## 662/4672 have no interpolated estimate! need to work on that
+
+
+## redo interpolatios by race
+## stolen from some Datacamp slides 
+
+race_vars <- c(White = "B03002_003", Black = "B03002_004",
+               Native = "B03002_005", Asian = "B03002_006",
+               HIPI = "B03002_007", Hispanic = "B03002_012")
+
+
+
+ca_race <- get_acs(state = "CA", geography = "block group",
+                   variables = race_vars,
+                   summary_var = "B03002_001",
+                   geometry = TRUE)
+
+## note some block groups have no pop--too small?
+
+ca_race_pct_white <- ca_race %>%
+  mutate(pct_white = (estimate/summary_est)*100) 
+
+cali_race_pct_white2 <- st_transform(ca_race_pct_white, crs = 26915) %>%
+  select(GEOID, geometry, pct_white)
+
+
+ar_validate(cali_race_pct_white2, cali_data, varList = "pct_white", verbose = TRUE)
+
+
+cali_interpolated_white <- aw_interpolate(cali_data %>% select(PWSID, geometry),
+                                          tid = PWSID,
+                                          source = cali_race_pct_white2,
+                                          sid = GEOID,
+                                          weight = "sum",
+                                          output = "sf",
+                                          intensive = "pct_white")
+
+# only 80 NA
+sum(is.na(cali_interpolated_white$pct_white))
+
+
+ca_race_pct_black <- ca_race %>%
+  filter(variable == "Black") %>%
+  mutate(pct_black = (estimate/summary_est)*100) 
+  
+
+cali_race_pct_black2 <- st_transform(ca_race_pct_black, crs = 26915) %>%
+  select(GEOID, geometry, pct_black)
+
+ar_validate(cali_race_pct_black2, cali_data, varList = "pct_black", verbose = TRUE)
+
+cali_interpolated_black <- aw_interpolate(cali_data %>% select(PWSID, geometry),
+                                         tid = PWSID,
+                                         source = cali_race_pct_black2,
+                                         sid = GEOID,
+                                         weight = "sum",
+                                         output = "sf",
+                                         intensive = "pct_black")
+
+
+sum(is.na(cali_interpolated_black$pct_black))
+
+## only 80 have no interpolated estimate 
+
+
+
+ca_race_pct_hispanic <- ca_race %>%
+  filter(variable == "Hispanic") %>%
+  mutate(pct_hispanic = (estimate/summary_est)*100) 
+
+
+cali_race_pct_hispanic2 <- st_transform(ca_race_pct_hispanic, crs = 26915) %>%
+  select(GEOID, geometry, pct_hispanic)
+
+ar_validate(cali_race_pct_hispanic2, cali_data, varList = "pct_hispanic", verbose = TRUE)
+
+cali_interpolated_hispanic <- aw_interpolate(cali_data %>% select(PWSID, geometry),
+                                          tid = PWSID,
+                                          source = cali_race_pct_hispanic2,
+                                          sid = GEOID,
+                                          weight = "sum",
+                                          output = "sf",
+                                          intensive = "pct_hispanic")
+
+
+sum(is.na(cali_interpolated_hispanic$pct_hispanic))
+
+## only 80 have no interpolated estimate 
+
+## merge in interpolated race data
+
+cali_interpolated_all <- cali_interpolated_inc %>%
+  left_join(st_drop_geometry(cali_interpolated_black)) %>%
+  left_join(st_drop_geometry(cali_interpolated_white)) %>%
+  left_join(st_drop_geometry(cali_interpolated_hispanic)) %>%
+  rename(median_income = estimate)
+
+
+
+## get violation data
+
+
+violation_data <- read.xlsx(here::here("data", "hr2w_web_data_active.xlsx"),
+                            detectDates = TRUE)
+
+## VIOL_END_DATE is not correctly identified as a date (possible b/c of missings)
+
+violation_data2 <- violation_data %>%
+  rename(PWSID = WATER_SYSTEM_NUMBER) %>%
+  mutate(VIOL_END_DATE = ymd(VIOL_END_DATE)) %>%
+  filter(VIOL_BEGIN_DATE >= ymd("2018-01-01")) %>%
+  group_by(PWSID) %>%
+  count()
+
+cali_interpolated_all <- cali_interpolated_all %>%
+  left_join(violation_data2) %>%
+  replace_na(list(n = 0)) %>% 
+  mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income)
+
+
+
+## graph bill by income 
+cali_graph1 <- cali_interpolated_all %>%
+  filter(!is.na(median_income), !is.na(wr_12_hcf_total_w_bill),
+         wr_12_hcf_total_w_bill > 0) %>%
+  mutate(pct_income = wr_12_hcf_total_w_bill*12/estimate)
+
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(wr_12_hcf_total_w_bill < 1000, wr_12_hcf_total_w_bill > 0), 
+       aes(x = median_income, y = wr_12_hcf_total_w_bill)) +
+  labs(title = "Median Income by Normalized Water Bill") +
+  geom_point() 
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(pct_income < 0.5), 
+       aes(x = median_income, y = pct_income)) +
+  labs(title = "Median Income by Normalized Bill as Percent Income") +
+  geom_point() +
+  labs(caption = "One system dropped, pct income > 2") 
+
+
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(pct_income < 0.5), 
+       aes(x = pct_black, y = pct_income)) +
+  labs(title = "Percent Black by Pct Income of Normalized Water Bill") +
+  geom_point() +
+  labs(caption = "One system dropped, pct income > 2") 
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(pct_income < 0.5), 
+       aes(x = pct_hispanic, y = pct_income)) +
+  labs(title = "Percent Hispanic by Pct Income of Normalized Water Bill") +
+  geom_point() 
+
+
+
+## I did a quick summary and this is almost all MCL viols, so I don't clean
+
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = median_income, y = n)) +
+  geom_point() +
+  labs(title = "Number of Violations by Median Income") 
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_white, y = n)) +
+  geom_point() +
+    labs(title = "Number of Violations by Pct White") 
+
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_black, y = n)) +
+  geom_point() +
+  labs(title = "Number of Violations by Pct Black")
+
+
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_hispanic, y = n)) +
+  geom_point() +
+  labs(title = "Number of Violations by Pct Hispanic")
+
+
