@@ -39,7 +39,7 @@ vignettes/*.pdf
 .Renviron
 
 # api key
-wills_api_key.R
+will_api_key.R
 
 # data subdirectory
 data/*
