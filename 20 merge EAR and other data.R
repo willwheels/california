@@ -21,14 +21,7 @@ theme_set(theme_minimal() +
 
 ## EAR data
 
-if(!(file.exists(here::here("data", "earsurveyresults_2018ry.zip")))){
-  EAR_url_2018 <- "https://www.waterboards.ca.gov/drinking_water/certlic/drinkingwater/documents/ear/earsurveyresults_2018ry.zip"
-  
-  temp <- tempfile()
-  download.file(EAR_url_2018, destfile = here::here("data", "earsurveyresults_2018ry.zip"))
-  unzip(here::here("data", "earsurveyresults_2018ry.zip"), exdir = here::here("data"))
-  unlink(temp)
-}
+
 
 ## some rows don't parse correctly--appears to be issue in data file
 EAR_data_2018 <- read_tsv(here::here("data", "EARSurveyResults_2018RY.txt"))
@@ -47,20 +40,23 @@ rm(EAR_data_2018)
 cali_geojson <- read_sf(here::here("data", "California_Drinking_Water_System_Area_Boundaries.geojson"))
 
 cali_data <- cali_geojson %>%
-  select(PWSID, NAME, geometry) %>%
+  select(SABL_PWSID, WATER_SYSTEM_NAME, geometry) %>%
+  rename(PWSID = SABL_PWSID) %>%
   left_join(EAR_standard_rates) %>%
   mutate(wr_12_hcf_total_w_bill = as.numeric(wr_12_hcf_total_w_bill))
 
 cali <- map_data("state", region = "california")
+
 ggplot() + 
   geom_polygon(data = cali,
                aes(x=long, y = lat, group = group),
                fill = NA, color = "black", size = .25) +
+  labs(title= "Map of California Drinking Water System Boundaries") +
   geom_sf(data = cali_geojson) +
   ggthemes::theme_map()
 
 
-## load variable names, if needed, cache should speed later calls according 
+## load ACS variable names, if needed, cache should speed later calls according 
 ## to docs
 v18 <- load_variables(2018, "acs5", cache = TRUE)
 
@@ -102,7 +98,7 @@ cali_interpolated_inc <- aw_interpolate(cali_data,
 
 sum(is.na(cali_interpolated_inc$estimate))
 
-## 662/4672 have no interpolated estimate! need to work on that
+## 692/4672 have no interpolated estimate! need to work on that
 
 
 ## redo interpolatios by race
@@ -118,6 +114,8 @@ ca_race <- get_acs(state = "CA", geography = "block group",
                    variables = race_vars,
                    summary_var = "B03002_001",
                    geometry = TRUE)
+
+
 
 ## note some block groups have no pop--too small?
 
@@ -139,7 +137,7 @@ cali_interpolated_white <- aw_interpolate(cali_data %>% select(PWSID, geometry),
                                           output = "sf",
                                           intensive = "pct_white")
 
-# only 80 NA
+# only 77 NA
 sum(is.na(cali_interpolated_white$pct_white))
 
 
@@ -164,7 +162,7 @@ cali_interpolated_black <- aw_interpolate(cali_data %>% select(PWSID, geometry),
 
 sum(is.na(cali_interpolated_black$pct_black))
 
-## only 80 have no interpolated estimate 
+## only 77 have no interpolated estimate 
 
 
 
@@ -189,7 +187,7 @@ cali_interpolated_hispanic <- aw_interpolate(cali_data %>% select(PWSID, geometr
 
 sum(is.na(cali_interpolated_hispanic$pct_hispanic))
 
-## only 80 have no interpolated estimate 
+## only 77 have no interpolated estimate 
 
 ## merge in interpolated race data
 
@@ -214,76 +212,14 @@ violation_data2 <- violation_data %>%
   mutate(VIOL_END_DATE = ymd(VIOL_END_DATE)) %>%
   filter(VIOL_BEGIN_DATE >= ymd("2018-01-01")) %>%
   group_by(PWSID) %>%
-  count()
+  count() %>%
+  rename(viols_since_2018 = n) %>%
+  replace_na(list(viols_since_2018 = 0))
 
 cali_interpolated_all <- cali_interpolated_all %>%
-  left_join(violation_data2) %>%
-  replace_na(list(n = 0)) %>% 
-  mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income)
+  left_join(violation_data2) %>% 
+  mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income) 
 
 
 
-## graph bill by income 
-cali_graph1 <- cali_interpolated_all %>%
-  filter(!is.na(median_income), !is.na(wr_12_hcf_total_w_bill),
-         wr_12_hcf_total_w_bill > 0) %>%
-  mutate(pct_income = wr_12_hcf_total_w_bill*12/estimate)
-
-
-ggplot(data = cali_interpolated_all %>% 
-         filter(wr_12_hcf_total_w_bill < 1000, wr_12_hcf_total_w_bill > 0), 
-       aes(x = median_income, y = wr_12_hcf_total_w_bill)) +
-  labs(title = "Median Income by Normalized Water Bill") +
-  geom_point() 
-
-ggplot(data = cali_interpolated_all %>% 
-         filter(pct_income < 0.5), 
-       aes(x = median_income, y = pct_income)) +
-  labs(title = "Median Income by Normalized Bill as Percent Income") +
-  geom_point() +
-  labs(caption = "One system dropped, pct income > 2") 
-
-
-
-ggplot(data = cali_interpolated_all %>% 
-         filter(pct_income < 0.5), 
-       aes(x = pct_black, y = pct_income)) +
-  labs(title = "Percent Black by Pct Income of Normalized Water Bill") +
-  geom_point() +
-  labs(caption = "One system dropped, pct income > 2") 
-
-ggplot(data = cali_interpolated_all %>% 
-         filter(pct_income < 0.5), 
-       aes(x = pct_hispanic, y = pct_income)) +
-  labs(title = "Percent Hispanic by Pct Income of Normalized Water Bill") +
-  geom_point() 
-
-
-
-## I did a quick summary and this is almost all MCL viols, so I don't clean
-
-
-ggplot(data = cali_interpolated_all, 
-       aes(x = median_income, y = n)) +
-  geom_point() +
-  labs(title = "Number of Violations by Median Income") 
-
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_white, y = n)) +
-  geom_point() +
-    labs(title = "Number of Violations by Pct White") 
-
-
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_black, y = n)) +
-  geom_point() +
-  labs(title = "Number of Violations by Pct Black")
-
-
-
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_hispanic, y = n)) +
-  geom_point() +
-  labs(title = "Number of Violations by Pct Hispanic")
-
-
+save(cali_interpolated_all, file = here::here("data", "cali_interpolated_all.Rda"))

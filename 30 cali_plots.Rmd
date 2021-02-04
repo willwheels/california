@@ -1,0 +1,142 @@
+---
+title: "California EJ Scoping"
+author: "Will Wheeler"
+date: "2/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(sf)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load_data}
+
+load(here::here("data", "cali_interpolated_all.Rda"))
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r bill_by_income, echo=FALSE}
+
+## graph bill by income 
+cali_graph1 <- cali_interpolated_all %>%
+  select(-geometry) %>%
+  filter(!is.na(median_income), !is.na(wr_12_hcf_total_w_bill),
+         wr_12_hcf_total_w_bill > 0) %>%
+  mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income)
+
+```
+
+
+
+
+```{r bill_by_MHI}
+
+ggplot(data = cali_graph1 %>% 
+         filter(wr_12_hcf_total_w_bill < 1000, wr_12_hcf_total_w_bill > 0), 
+       aes(x = median_income, y = wr_12_hcf_total_w_bill)) +
+  labs(title = "Median Income by Normalized Water Bill") +
+  geom_point() 
+
+```
+
+```{r bill_by_MHI_trim}
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(pct_income < 0.5), 
+       aes(x = median_income, y = pct_income)) +
+  labs(title = "Median Income by Normalized Bill as Percent Income") +
+  geom_point() +
+  labs(caption = "One system dropped, pct income > 2") 
+
+```
+
+
+```{r pct_black_by_pct_income}
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(pct_income < 0.5), 
+       aes(x = pct_black, y = pct_income)) +
+  labs(title = "Percent Black by Pct Income of Normalized Water Bill") +
+  geom_point() +
+  labs(caption = "One system dropped, pct income > 2") 
+
+```
+
+
+```{r pct_hispanic_by_pct_income}
+
+
+ggplot(data = cali_interpolated_all %>% 
+         filter(pct_income < 0.5), 
+       aes(x = pct_hispanic, y = pct_income)) +
+  labs(title = "Percent Hispanic by Pct Income of Normalized Water Bill") +
+  geom_point() 
+
+
+```
+
+
+
+
+
+Now compare violations to demographics. I did a quick summary and this is almost all MCL violationss, so I didn't clean the violation data.
+
+```{r violations_by_income}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = median_income, y = n)) +
+  geom_point() +
+  labs(title = "Number of Violations by Median Income")
+
+```
+
+ 
+```{r violations_by_pct_white}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_white, y = n)) +
+  geom_point() +
+    labs(title = "Number of Violations by Pct White") 
+
+```
+
+
+```{r viols_by_pct_black}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_black, y = n)) +
+  geom_point() +
+  labs(title = "Number of Violations by Pct Black")
+
+```
+
+
+
+```{r viols_by_pct_hispanic}
+
+
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_hispanic, y = n)) +
+  geom_point() +
+  labs(title = "Number of Violations by Pct Hispanic")
+
+
+```
+
+
+
+
