@@ -2,7 +2,7 @@ library(sf)
 library(tidyverse)
 library(tidycensus)
 library(areal)
-
+library(stringr)
 library(openxlsx)
 library(lubridate)
 
@@ -21,8 +21,6 @@ theme_set(theme_minimal() +
 
 ## EAR data
 
-
-
 ## some rows don't parse correctly--appears to be issue in data file
 EAR_data_2018 <- read_tsv(here::here("data", "EARSurveyResults_2018RY.txt"))
 
@@ -32,6 +30,18 @@ EAR_standard_rates <- EAR_data_2018 %>%
   pivot_wider(names_from = "QuestionName", values_from = "QuestionResults") %>%
   janitor::clean_names() %>%
   rename(PWSID = pwsid)
+
+
+## distinct is necessary because there are duplicate lines in the data OR I messed up
+EAR_shutoffs <- EAR_data_2018 %>%
+  filter(QuestionName %in% c("WR SHUT_OFFS Once SF Total")) %>%
+  select(PWSID, Survey, QuestionName, QuestionResults) %>%
+  distinct() %>%
+  pivot_wider(names_from = "QuestionName", values_from = "QuestionResults") %>%
+  janitor::clean_names() %>%
+  rename(PWSID = pwsid)
+
+          
 
 rm(EAR_data_2018)
 
@@ -43,7 +53,9 @@ cali_data <- cali_geojson %>%
   select(SABL_PWSID, WATER_SYSTEM_NAME, geometry) %>%
   rename(PWSID = SABL_PWSID) %>%
   left_join(EAR_standard_rates) %>%
-  mutate(wr_12_hcf_total_w_bill = as.numeric(wr_12_hcf_total_w_bill))
+  left_join(EAR_shutoffs) %>%
+  mutate(wr_12_hcf_total_w_bill = as.numeric(wr_12_hcf_total_w_bill),
+         wr_shut_offs_once_sf_total)
 
 cali <- map_data("state", region = "california")
 
@@ -67,6 +79,8 @@ v18 <- load_variables(2018, "acs5", cache = TRUE)
 options(tigris_use_cache = TRUE)
 source(here::here("will_api_key.R"))
 census_api_key(wills_api_key, install = TRUE)
+
+#readRenviron("~/.Renviron")
 
 
 
@@ -98,8 +112,8 @@ cali_interpolated_inc <- aw_interpolate(cali_data,
 
 sum(is.na(cali_interpolated_inc$estimate))
 
-## 692/4672 have no interpolated estimate! need to work on that
-
+## 693/4672 have no interpolated estimate! need to work on that
+## (numbers changed slightly after new pulls)
 
 ## redo interpolatios by race
 ## stolen from some Datacamp slides 
@@ -137,7 +151,7 @@ cali_interpolated_white <- aw_interpolate(cali_data %>% select(PWSID, geometry),
                                           output = "sf",
                                           intensive = "pct_white")
 
-# only 77 NA
+# only 76 NA
 sum(is.na(cali_interpolated_white$pct_white))
 
 
@@ -162,7 +176,7 @@ cali_interpolated_black <- aw_interpolate(cali_data %>% select(PWSID, geometry),
 
 sum(is.na(cali_interpolated_black$pct_black))
 
-## only 77 have no interpolated estimate 
+## only 76 have no interpolated estimate 
 
 
 
@@ -187,7 +201,7 @@ cali_interpolated_hispanic <- aw_interpolate(cali_data %>% select(PWSID, geometr
 
 sum(is.na(cali_interpolated_hispanic$pct_hispanic))
 
-## only 77 have no interpolated estimate 
+## only 76 have no interpolated estimate 
 
 ## merge in interpolated race data
 
@@ -220,6 +234,6 @@ cali_interpolated_all <- cali_interpolated_all %>%
   left_join(violation_data2) %>% 
   mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income) 
 
-
+load(here::here("data", "nitrate.Rda"))
 
 save(cali_interpolated_all, file = here::here("data", "cali_interpolated_all.Rda"))

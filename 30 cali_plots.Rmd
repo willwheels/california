@@ -138,5 +138,13 @@ ggplot(data = cali_interpolated_all,
 ```
 
 
+To-dos: 
 
+- Currently using ACS block group data, is it possible to use a finer geographic distinction?
+- Verify that we are using correct sample point codes
+- Self-intersecting polygons in system map
+- Not all systems have interpolated data
+- Investigate/compare different interpolation methods
+- Using reported standardized water rates (12 HCF), compare with calculated rates (also some standardized rates are missing)
+- Much richer data on shutoffs
 
