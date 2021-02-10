@@ -80,7 +80,7 @@ options(tigris_use_cache = TRUE)
 source(here::here("will_api_key.R"))
 census_api_key(wills_api_key, install = TRUE)
 
-#readRenviron("~/.Renviron")
+readRenviron("~/.Renviron")
 
 
 
@@ -234,6 +234,31 @@ cali_interpolated_all <- cali_interpolated_all %>%
   left_join(violation_data2) %>% 
   mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income) 
 
+load(here::here("data", "thm.Rda"))
+
+all_thm <- all_thm %>%
+  separate(PRIM_STA_C, into = c("PWSID", NA)) %>%
+  mutate(PWSID = paste0("CA", PWSID)) %>%
+  select(PWSID, sample_year, FINDING) %>%
+  filter(sample_year >= 2018) %>%
+  group_by(PWSID) %>%
+  summarise(mean_thm = mean(FINDING))
+
+
 load(here::here("data", "nitrate.Rda"))
+
+all_nitrate <- all_nitrate %>%
+  separate(PRIM_STA_C, into = c("PWSID", NA)) %>%
+  mutate(PWSID = paste0("CA", PWSID)) %>%
+  select(PWSID, sample_year, FINDING) %>%
+  filter(sample_year >= 2010) %>%
+  group_by(PWSID) %>%
+  summarise(mean_nitrate = mean(FINDING))
+  
+cali_interpolated_all <- cali_interpolated_all %>%
+  left_join(all_thm) %>%
+  left_join(all_nitrate)
+
+
 
 save(cali_interpolated_all, file = here::here("data", "cali_interpolated_all.Rda"))

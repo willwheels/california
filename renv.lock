@@ -296,13 +296,6 @@
       "Repository": "RSPM",
       "Hash": "4d243a9c10b00589889fe32314ffd902"
     },
-    "geojson": {
-      "Package": "geojson",
-      "Version": "0.3.4",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "8d2107f1ebe9a75339e9fd130c07c1f6"
-    },
     "ggplot2": {
       "Package": "ggplot2",
       "Version": "3.3.3",
@@ -387,13 +380,6 @@
       "Repository": "RSPM",
       "Hash": "6de84a8c67fb247e721166049c84695f"
     },
-    "jqr": {
-      "Package": "jqr",
-      "Version": "1.2.0",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "d546c616ce9aaa21858f2a7d96d2e1b0"
-    },
     "jsonlite": {
       "Package": "jsonlite",
       "Version": "1.7.2",
@@ -421,13 +407,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "fbd9285028b0263d76d18c95ae51a53d"
-    },
-    "lazyeval": {
-      "Package": "lazyeval",
-      "Version": "0.2.2",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "d908914ae53b04d4c0c0fd72ecc35370"
     },
     "lifecycle": {
       "Package": "lifecycle",
@@ -527,13 +506,6 @@
       "Repository": "RSPM",
       "Hash": "2253a430965e222d11a2f9277cd34c2e"
     },
-    "pacman": {
-      "Package": "pacman",
-      "Version": "0.5.1",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "b37932b67288bc62bb81686b2f337a7d"
-    },
     "pillar": {
       "Package": "pillar",
       "Version": "1.4.7",
@@ -590,13 +562,6 @@
       "Repository": "RSPM",
       "Hash": "14dc9f7a3c91ebb14ec5bb9208a07061"
     },
-    "protolite": {
-      "Package": "protolite",
-      "Version": "2.1",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "c05e98fd430da3ec9255cd15b617469a"
-    },
     "ps": {
       "Package": "ps",
       "Version": "1.5.0",
@@ -645,13 +610,6 @@
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "76c9e04c712a05848ae7a23d2f170a40"
-    },
-    "remotes": {
-      "Package": "remotes",
-      "Version": "2.2.0",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "430a0908aee75b1fcba0e62857cab0ce"
     },
     "renv": {
       "Package": "renv",

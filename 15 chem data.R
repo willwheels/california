@@ -166,23 +166,56 @@ ggplot(data = all_tce %>% filter(FINDING > 0, FINDING < 25), aes(x = FINDING)) +
 
 
 
-all_nitrate <-  map2_dfr(chem_csv_files, "71850", get_samples_one_poll)
+#all_nitrate <-  map2_dfr(chem_csv_files, "71850", get_samples_one_poll)
 
-summary(all_nitrate)
+#summary(all_nitrate)
 
-save(all_nitrate, file = here::here("data", "nitrate.Rda"))
+#save(all_nitrate, file = here::here("data", "nitrate.Rda"))
 
-ggplot(data = all_nitrate %>% filter(FINDING > 0, FINDING < 30), aes(x = FINDING)) +
+## oops nitrate is from one freaking facility!!
+
+#ggplot(data = all_nitrate %>% filter(FINDING > 0, FINDING < 30), aes(x = FINDING)) +
+#  geom_histogram(binwidth = 1)
+
+
+# ggplot(data = all_nitrate %>% filter(FINDING > 5, FINDING < 20), aes(x = FINDING)) +
+#   geom_histogram(binwidth = 1)
+
+
+thms <- analytes2 %>%
+  filter(str_detect(CHEMICAL__, "THM"))
+
+all_thm1 <-  map2_dfr(chem_csv_files, thms$STORE_NUM[1], get_samples_one_poll)
+
+summary(all_thm1)
+
+
+all_thm2 <-  map2_dfr(chem_csv_files, thms$STORE_NUM[2], get_samples_one_poll)
+
+summary(all_thm2)
+
+all_thm3 <-  map2_dfr(chem_csv_files, thms$STORE_NUM[3], get_samples_one_poll)
+
+summary(all_thm3)
+
+all_thm4 <-  map2_dfr(chem_csv_files, thms$STORE_NUM[4], get_samples_one_poll)
+
+summary(all_thm4)
+
+
+ggplot(data = all_thm1 %>% filter(FINDING > 0, FINDING < 25), aes(x = FINDING)) +
+  geom_histogram(binwidth = 1)
+
+ggplot(data = all_thm2 %>% filter(FINDING > 0, FINDING < 25), aes(x = FINDING)) +
   geom_histogram(binwidth = 1)
 
 
-ggplot(data = all_nitrate %>% filter(FINDING > 5, FINDING < 20), aes(x = FINDING)) +
+ggplot(data = all_thm3 %>% filter(FINDING > 0, FINDING < 25), aes(x = FINDING)) +
   geom_histogram(binwidth = 1)
 
+ggplot(data = all_thm4 %>% filter(FINDING > 0, FINDING < 25), aes(x = FINDING)) +
+  geom_histogram(binwidth = 1)
 
+all_thm <- rbind(all_thm1, all_thm2 ,all_thm3, all_thm4)
 
-check_year <- check %>%
-  mutate(sample_date = lubridate::mdy_hms(SAMP_DATE),
-         sample_year = year(sample_date))
-
-
+save(all_thm, file = here::here("data", "thm.Rda"))

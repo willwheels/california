@@ -43,3 +43,5 @@ will_api_key.R
 
 # data subdirectory
 data/*
+
+*.png

@@ -47,7 +47,7 @@ cali_graph1 <- cali_interpolated_all %>%
 ggplot(data = cali_graph1 %>% 
          filter(wr_12_hcf_total_w_bill < 1000, wr_12_hcf_total_w_bill > 0), 
        aes(x = median_income, y = wr_12_hcf_total_w_bill)) +
-  labs(title = "Median Income by Normalized Water Bill") +
+  labs(title = " Normalized Water Bill by Median Income") +
   geom_point() 
 
 ```
@@ -97,7 +97,7 @@ Now compare violations to demographics. I did a quick summary and this is almost
 ```{r violations_by_income}
 
 ggplot(data = cali_interpolated_all, 
-       aes(x = median_income, y = n)) +
+       aes(x = median_income, y = viols_since_2018)) +
   geom_point() +
   labs(title = "Number of Violations by Median Income")
 
@@ -138,13 +138,75 @@ ggplot(data = cali_interpolated_all,
 ```
 
 
+```{r nitrate_by_pct_white}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_white, y = mean_nitrate)) +
+  geom_point() +
+    labs(title = "Nitrate by Pct White") 
+
+```
+
+
+```{r nitrate_by_pct_black}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_black, y = mean_nitrate)) +
+  geom_point() +
+  labs(title = "Mean Nitrate Levels by Pct Black", subtitle = "2010-2105")
+
+```
+
+
+
+```{r nitate_by_pct_hispanic}
+
+
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_hispanic, y = mean_nitrate)) +
+  geom_point() +
+  labs(title = "Mean Nitrate Levels by Pct Black", subtitle = "2010-2105")
+
+
+```
+```{r thm_by_pct_white}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_white, y = mean_thm)) +
+  geom_point() +
+    labs(title = "Mean THMs by Pct White") 
+
+```
+
+```{r thm_by_pct_black}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_black, y = mean_thm)) +
+  geom_point() +
+  labs(title = "Mean THM Levels by Pct Black")
+
+```
+
+```{r thm_by_pct_hispanic}
+
+ggplot(data = cali_interpolated_all, 
+       aes(x = pct_hispanic, y = mean_thm)) +
+  geom_point() +
+  labs(title = "Mean THM Levels by Pct Hispanic")
+
+```
+
 To-dos: 
 
 - Currently using ACS block group data, is it possible to use a finer geographic distinction?
+- Percent White variable is clearly wrong
 - Verify that we are using correct sample point codes
 - Self-intersecting polygons in system map
 - Not all systems have interpolated data
 - Investigate/compare different interpolation methods
 - Using reported standardized water rates (12 HCF), compare with calculated rates (also some standardized rates are missing)
-- Much richer data on shutoffs
+- Much richer data on shutoffs in EARs
+- Evaluate quality/readability of CCRs
+- Add coliform data
 
