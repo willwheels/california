@@ -403,10 +403,10 @@
     },
     "knitr": {
       "Package": "knitr",
-      "Version": "1.31",
+      "Version": "1.30",
       "Source": "Repository",
       "Repository": "RSPM",
-      "Hash": "c3994c036d19fc22c5e2a209c8298bfb"
+      "Hash": "eed7ee0d02eee88d53881cdc92457c62"
     },
     "labeling": {
       "Package": "labeling",
@@ -683,10 +683,10 @@
     },
     "rmarkdown": {
       "Package": "rmarkdown",
-      "Version": "2.6",
+      "Version": "2.5",
       "Source": "Repository",
       "Repository": "RSPM",
-      "Hash": "bc4bac38960b446c183957bfd563e763"
+      "Hash": "20a0a94af9e8f7040510447763aab3e9"
     },
     "rprojroot": {
       "Package": "rprojroot",
