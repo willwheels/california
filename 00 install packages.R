@@ -1,2 +1,5 @@
 renv::hydrate()
+renv::settings$use.cache(FALSE)
+renv::install("geojson")
+renv::install("remotes")
 renv::snapshot()
