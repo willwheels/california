@@ -10,13 +10,25 @@ knitr::opts_chunk$set(echo = FALSE)
 
 library(tidyverse)
 library(sf)
+
+
+theme_set(theme_minimal() + 
+            theme(plot.title.position = "plot", 
+                  plot.caption.position = "plot"))
 ```
 
-## R Markdown
+This is an initial attempt to demonstrate the feasibility of combining different sources of data on drinking water systems and their customers to provide a descriptive analysis of EJ as it applies to drinking water. To begin, we focus on California, which has the best available data. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## Data Sources
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+We use a number of data sources, including: 
+
+- Geospatial data on water system boundaries 
+- Chemical sampling data for drinking water systems obtained from the California Water Board (https://www.waterboards.ca.gov/drinking_water/certlic/drinkingwater/EDTlibrary.html)
+- Electronic Annual Report (EAR) data on water systems, again from the Board. These reports contain detailed information on systems, including on water rates.
+- Sociodemographic information from the American Community Survey (ACS)
+
+All of these data are matched to systems using the boundary data and interpolated, where necessary, using the areal package in R. 
 
 ```{r load_data}
 
@@ -24,9 +36,6 @@ load(here::here("data", "cali_interpolated_all.Rda"))
 
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
 
 ```{r bill_by_income, echo=FALSE}
 
@@ -40,7 +49,9 @@ cali_graph1 <- cali_interpolated_all %>%
 ```
 
 
+We begin with a number of graphs showing how water bills and sociodemographics interact. We use a self-reported normalized water bill from the EAR survey data. We use the normalized bill for 12 hundred cubic feet (about 9000 gallons) to represent an approximate bill for a family.
 
+First, the normalized bill by median income for the system. 
 
 ```{r bill_by_MHI}
 
@@ -48,9 +59,12 @@ ggplot(data = cali_graph1 %>%
          filter(wr_12_hcf_total_w_bill < 1000, wr_12_hcf_total_w_bill > 0), 
        aes(x = median_income, y = wr_12_hcf_total_w_bill)) +
   labs(title = " Normalized Water Bill by Median Income") +
+  xlab("Normalized Bill, $/month") +
   geom_point() 
 
 ```
+
+And the percent of median income by median income. 
 
 ```{r bill_by_MHI_trim}
 
@@ -62,7 +76,7 @@ ggplot(data = cali_interpolated_all %>%
   labs(caption = "One system dropped, pct income > 2") 
 
 ```
-
+Bill expressed as percent of income by percent black and percent Hispanic.
 
 ```{r pct_black_by_pct_income}
 
@@ -92,7 +106,7 @@ ggplot(data = cali_interpolated_all %>%
 
 
 
-Now compare violations to demographics. I did a quick summary and this is almost all MCL violationss, so I didn't clean the violation data.
+Now compare violations (since 2018) to demographics. I did a quick summary and this is almost all MCL violationss, so I didn't clean the violation data.
 
 ```{r violations_by_income}
 
@@ -103,21 +117,12 @@ ggplot(data = cali_interpolated_all,
 
 ```
 
- 
-```{r violations_by_pct_white}
-
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_white, y = n)) +
-  geom_point() +
-    labs(title = "Number of Violations by Pct White") 
-
-```
 
 
 ```{r viols_by_pct_black}
 
 ggplot(data = cali_interpolated_all, 
-       aes(x = pct_black, y = n)) +
+       aes(x = pct_black, y = viols_since_2018)) +
   geom_point() +
   labs(title = "Number of Violations by Pct Black")
 
@@ -130,7 +135,7 @@ ggplot(data = cali_interpolated_all,
 
 
 ggplot(data = cali_interpolated_all, 
-       aes(x = pct_hispanic, y = n)) +
+       aes(x = pct_hispanic, y = viols_since_2018)) +
   geom_point() +
   labs(title = "Number of Violations by Pct Hispanic")
 
@@ -138,14 +143,7 @@ ggplot(data = cali_interpolated_all,
 ```
 
 
-```{r nitrate_by_pct_white}
 
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_white, y = mean_nitrate)) +
-  geom_point() +
-    labs(title = "Nitrate by Pct White") 
-
-```
 
 
 ```{r nitrate_by_pct_black}
@@ -166,47 +164,41 @@ ggplot(data = cali_interpolated_all,
 ggplot(data = cali_interpolated_all, 
        aes(x = pct_hispanic, y = mean_nitrate)) +
   geom_point() +
-  labs(title = "Mean Nitrate Levels by Pct Black", subtitle = "2010-2105")
+  labs(title = "Mean Nitrate Levels by Percent Hispanic", subtitle = "2010-2105")
 
 
 ```
-```{r thm_by_pct_white}
 
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_white, y = mean_thm)) +
-  geom_point() +
-    labs(title = "Mean THMs by Pct White") 
 
-```
+<!--  ```{r thm_by_pct_black}  -->
+<!--  ggplot(data = cali_interpolated_all,   -->
+<!--         aes(x = pct_black, y = mean_thm)) + -->
+<!--    geom_point() + -->
+<!--    labs(title = "Mean THM Levels by Pct Black") -->
+<!-- ``` -->
 
-```{r thm_by_pct_black}
 
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_black, y = mean_thm)) +
-  geom_point() +
-  labs(title = "Mean THM Levels by Pct Black")
+<!--  ```{r thm_by_pct_hispanic} -->
 
-```
-
-```{r thm_by_pct_hispanic}
-
-ggplot(data = cali_interpolated_all, 
-       aes(x = pct_hispanic, y = mean_thm)) +
-  geom_point() +
-  labs(title = "Mean THM Levels by Pct Hispanic")
-
-```
+<!--  ggplot(data = cali_interpolated_all,  -->
+<!--         aes(x = pct_hispanic, y = mean_thm)) + -->
+<!--    geom_point() + -->
+<!--    labs(title = "Mean THM Levels by Pct Hispanic") -->
+<!--   ``` -->
 
 To-dos: 
 
+- Water system boundaries are available for four other states, how feasible is extending analysis (unclear what rate data is available)
 - Currently using ACS block group data, is it possible to use a finer geographic distinction?
+- Using reported standardized water rates (12 HCF), compare with calculated rates (also some standardized rates are missing)
+- Look at other charges as well
+- Much richer data on shutoffs in EARs
+- Evaluate quality/readability of CCRs
+- Add coliform data
 - Percent White variable is clearly wrong
 - Verify that we are using correct sample point codes
 - Self-intersecting polygons in system map
 - Not all systems have interpolated data
 - Investigate/compare different interpolation methods
-- Using reported standardized water rates (12 HCF), compare with calculated rates (also some standardized rates are missing)
-- Much richer data on shutoffs in EARs
-- Evaluate quality/readability of CCRs
-- Add coliform data
+
 
