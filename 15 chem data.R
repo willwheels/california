@@ -1,3 +1,7 @@
+## download and read in chem data files from California (NOT DWW files)
+## going forward, we'll want to use DWW files to enable better replication
+## as we add states
+
 library(tidyverse)
 library(foreign)
 library(data.table)
@@ -82,7 +86,7 @@ count_analytes <- function(filename) {
   
 }
 
-
+## used to examine the analytes we have in data
 
 analytes <- map_dfr(chem_csv_files, count_analytes)
 
@@ -91,6 +95,9 @@ analytes2 <- analytes %>%
   summarize(N = sum(N)) %>%
   arrange(-N) %>%
   left_join(storet)
+
+
+## statuses are active status and type of sampling point (need to link in ref)
 
 count_status <- function(filename) {
   
@@ -112,6 +119,8 @@ statuses2 <- statuses %>%
   arrange(-N) %>%
   left_join(storet)
 
+## function used ot map over pollutant files and get samples of one pollutant
+
 get_samples_one_poll <- function(filename, storenum) {
   
   fread(filename) %>%
@@ -125,7 +134,7 @@ get_samples_one_poll <- function(filename, storenum) {
   
 }
 
-
+## following includes lots of exploratory stuff
 
 all_lead <- map2_dfr(chem_csv_files, "01051", get_samples_one_poll)
 
@@ -166,16 +175,15 @@ ggplot(data = all_tce %>% filter(FINDING > 0, FINDING < 25), aes(x = FINDING)) +
 
 
 
-#all_nitrate <-  map2_dfr(chem_csv_files, "71850", get_samples_one_poll)
+all_nitrate <-  map2_dfr(chem_csv_files, "71850", get_samples_one_poll)
 
-#summary(all_nitrate)
+summary(all_nitrate)
 
-#save(all_nitrate, file = here::here("data", "nitrate.Rda"))
+save(all_nitrate, file = here::here("data", "nitrate.Rda"))
 
-## oops nitrate is from one freaking facility!!
 
-#ggplot(data = all_nitrate %>% filter(FINDING > 0, FINDING < 30), aes(x = FINDING)) +
-#  geom_histogram(binwidth = 1)
+ggplot(data = all_nitrate %>% filter(FINDING > 0, FINDING < 30), aes(x = FINDING)) +
+  geom_histogram(binwidth = 1)
 
 
 # ggplot(data = all_nitrate %>% filter(FINDING > 5, FINDING < 20), aes(x = FINDING)) +

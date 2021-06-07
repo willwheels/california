@@ -38,6 +38,7 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+
 # api key
 will_api_key.R
 
@@ -45,3 +46,4 @@ will_api_key.R
 data/*
 
 *.png
+*.html
