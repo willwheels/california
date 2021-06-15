@@ -139,6 +139,7 @@ ggplot(data = cali_interpolated_all,
   geom_point() +
   labs(title = "Number of Violations by Pct Hispanic")
 
+ggsave("viols_by_pct_hispanic.png")
 
 ```
 
