@@ -164,8 +164,10 @@ ggplot(data = cali_interpolated_all,
 ggplot(data = cali_interpolated_all, 
        aes(x = pct_hispanic, y = mean_nitrate)) +
   geom_point() +
-  labs(title = "Mean Nitrate Levels by Percent Hispanic", subtitle = "2010-2105")
+  labs(title = "Mean Nitrate Levels by Percent Hispanic", subtitle = "California, 2010-2105") +
+  xlab("Percent Hispanic") + ylab("Mean Nitrate, mg/l")
 
+ggsave("nitrate_hispanic_cali.png")
 
 ```
 
