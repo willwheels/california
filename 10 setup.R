@@ -3,7 +3,13 @@
 library(sp)
 
 
+if(!dir.exists(here::here("data"))) {
+  dir.create(here::here("data"))
+}
+
 cali_url_geojson <- "https://opendata.arcgis.com/datasets/fbba842bf134497c9d611ad506ec48cc_0.geojson"
+
+
 
 download.file(cali_url_geojson,
               destfile = here::here("data", "California_Drinking_Water_System_Area_Boundaries.geojson"))

@@ -21,6 +21,8 @@ theme_set(theme_minimal() +
 
 ## EAR data
 
+## to-do identify other years we can/should use
+
 ## some rows don't parse correctly--appears to be issue in data file
 EAR_data_2018 <- read_tsv(here::here("data", "EARSurveyResults_2018RY.txt"))
 
@@ -73,9 +75,10 @@ ggplot() +
 v18 <- load_variables(2018, "acs5", cache = TRUE)
 
 
-## replace with your own Census API Key
+## replace with your own Census API Key and add to .gitignore
 ## http://api.census.gov/data/key_signup.html
 
+## I need to do this on DMAP, but locally should only have to do once
 options(tigris_use_cache = TRUE)
 source(here::here("will_api_key.R"))
 census_api_key(wills_api_key, install = TRUE)
@@ -132,8 +135,10 @@ ca_race <- get_acs(state = "CA", geography = "block group",
 
 
 ## note some block groups have no pop--too small?
+## this seemed wrong on graphs
 
 ca_race_pct_white <- ca_race %>%
+  filter(variable == "White") %>%
   mutate(pct_white = (estimate/summary_est)*100) 
 
 cali_race_pct_white2 <- st_transform(ca_race_pct_white, crs = 26915) %>%
@@ -151,7 +156,7 @@ cali_interpolated_white <- aw_interpolate(cali_data %>% select(PWSID, geometry),
                                           output = "sf",
                                           intensive = "pct_white")
 
-# only 76 NA
+# only 71 NA
 sum(is.na(cali_interpolated_white$pct_white))
 
 

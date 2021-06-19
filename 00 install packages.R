@@ -3,8 +3,10 @@
 
 ## vignette on renv https://rstudio.github.io/renv/articles/collaborating.html
 
-renv::hydrate()
-renv::settings$use.cache(FALSE)
-renv::install("geojson")
-renv::install("remotes")
-renv::snapshot()
+## 
+
+# renv::hydrate()
+# renv::settings$use.cache(FALSE)
+# renv::install("geojson")
+# renv::install("remotes")
+# renv::snapshot()

@@ -17,6 +17,11 @@ chem_files <- c("chemical_as_dbf.zip", "chemical_as_csv.zip",
 )
 
 
+if(!dir.exists(here::here("data", "chem_data"))) {
+  dir.create(here::here("data", "chem_data"))
+}
+
+
 get_chem_file <- function(filename) {
   
   local_filename <- here::here("data", "chem_data", filename)
@@ -108,7 +113,7 @@ count_status <- function(filename) {
   
 }
 
-
+## to-do: figure out what statuses to use in which contexts
 
 statuses <- map_dfr(chem_csv_files, count_status)
 
@@ -135,6 +140,8 @@ get_samples_one_poll <- function(filename, storenum) {
 }
 
 ## following includes lots of exploratory stuff
+## to-do figure out what pollutants we want
+
 
 all_lead <- map2_dfr(chem_csv_files, "01051", get_samples_one_poll)
 
@@ -156,6 +163,10 @@ ggplot(data = all_lead %>% filter(FINDING > 10, FINDING < 20, sample_year > 2000
        aes(x = FINDING)) +
   geom_histogram(binwidth = 1) +
   facet_wrap(~LAB_NUM)
+
+ggplot(data = all_lead %>% filter(FINDING > 10, FINDING < 20, sample_year > 2000, LAB_NUM == 1472), 
+       aes(x = FINDING)) +
+  geom_histogram(binwidth = 1) 
 
 all_pce <-  map2_dfr(chem_csv_files, "34475", get_samples_one_poll)
 
