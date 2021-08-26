@@ -7,12 +7,10 @@ if(!dir.exists(here::here("data"))) {
   dir.create(here::here("data"))
 }
 
-cali_url_geojson <- "https://opendata.arcgis.com/datasets/fbba842bf134497c9d611ad506ec48cc_0.geojson"
-
-
-
-download.file(cali_url_geojson,
-              destfile = here::here("data", "California_Drinking_Water_System_Area_Boundaries.geojson"))
+# cali_url_geojson <- "https://opendata.arcgis.com/datasets/fbba842bf134497c9d611ad506ec48cc_0.geojson"
+# 
+# download.file(cali_url_geojson,
+#               destfile = here::here("data", "California_Drinking_Water_System_Area_Boundaries.geojson"))
 
 if (!file.exists(here::here("data", "hr2w_web_data_active.xlsx"))) {
   viols_urls <- "https://www.waterboards.ca.gov/water_issues/programs/hr2w/docs/data/hr2w_web_data_active.xlsx"
@@ -31,3 +29,4 @@ if(!(file.exists(here::here("data", "earsurveyresults_2018ry.zip")))){
   unzip(here::here("data", "earsurveyresults_2018ry.zip"), exdir = here::here("data"))
   unlink(temp)
 }
+
