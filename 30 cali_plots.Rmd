@@ -110,11 +110,15 @@ Now compare violations (since 2018) to demographics. I did a quick summary and t
 
 ```{r violations_by_income}
 
-ggplot(data = cali_interpolated_all, 
+ggplot(data = cali_interpolated_all %>% 
+         mutate(viols_since_2018 = replace_na(viols_since_2018, 0)), 
        aes(x = median_income, y = viols_since_2018)) +
-  geom_point() +
-  labs(title = "Number of Violations by Median Income")
+  geom_point() + 
+  #geom_smooth(method = "loess", se = FALSE) +
+  labs(title = "Number of Violations by Median Income",
+       x = "System MHI", y = "Number of Violations")
 
+ggsave("violations_by_income.png", height = 5, width = 9, units = "in")
 ```
 
 
@@ -137,7 +141,8 @@ ggplot(data = cali_interpolated_all,
 ggplot(data = cali_interpolated_all, 
        aes(x = pct_hispanic, y = viols_since_2018)) +
   geom_point() +
-  labs(title = "Number of Violations by Pct Hispanic")
+  labs(title = "Number of Violations by Percent Hispanic") +
+  xlab("Percent Hispanic") + ylab("Mean Nitrate, mg/l")
 
 ggsave("viols_by_pct_hispanic.png")
 
@@ -152,7 +157,7 @@ ggsave("viols_by_pct_hispanic.png")
 ggplot(data = cali_interpolated_all, 
        aes(x = pct_black, y = mean_nitrate)) +
   geom_point() +
-  labs(title = "Mean Nitrate Levels by Pct Black", subtitle = "2010-2105")
+  labs(title = "Mean Nitrate Levels by Pct Black", subtitle = "2010-2015")
 
 ```
 
@@ -165,10 +170,11 @@ ggplot(data = cali_interpolated_all,
 ggplot(data = cali_interpolated_all, 
        aes(x = pct_hispanic, y = mean_nitrate)) +
   geom_point() +
-  labs(title = "Mean Nitrate Levels by Percent Hispanic", subtitle = "California, 2010-2105") +
+  #geom_smooth(method = "loess", se = FALSE) +
+  labs(title = "Mean Nitrate Levels by Percent Hispanic", subtitle = "California, 2010-2015") +
   xlab("Percent Hispanic") + ylab("Mean Nitrate, mg/l")
 
-ggsave("nitrate_hispanic_cali.png")
+ggsave("nitrate_hispanic_cali.png", height = 5, width = 9, units = "in")
 
 ```
 

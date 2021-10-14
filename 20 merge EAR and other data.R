@@ -102,6 +102,21 @@ cali_acs_income2 <- st_transform(cali_acs_income, crs = 26915) %>%
 cali_data <- st_transform(cali_data, crs = 26915) %>%
   st_buffer(., dist = 0)
 
+
+##### for wes
+
+cali_acs_income_tract <- get_acs(state = "CA", geography = "tract",
+                                 variables = c(median_income = "B19013_001"),
+                                 geometry = TRUE)
+
+
+cali_acs_income_tract2 <- st_transform(cali_acs_income_tract, crs = 26915) 
+
+
+cali_income_merged <- st_join(cali_data, cali_acs_income_tract2)
+
+save(cali_income_merged, file = "cali_income_merged.Rda")
+
 ## verify all true for interpolation
 ar_validate(cali_acs_income2, cali_data, varList = "estimate", verbose = TRUE)
 

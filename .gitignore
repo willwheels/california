@@ -47,3 +47,5 @@ data/*
 
 *.png
 *.html
+
+*.Rda
