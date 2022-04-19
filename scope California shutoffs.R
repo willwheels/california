@@ -48,3 +48,7 @@ EAR_shutoffs_2019 <- EAR_data_2019 %>%
 EAR_shutoffs_combined <- rbind(EAR_shutoffs_2018, EAR_shutoffs_2019) %>%
   arrange(desc(total_sf_shutoffs))
 
+
+EAR_shutoffs_combined <- EAR_shutoffs_combined %>%
+  pivot_wider(id_cols = c("PWSID", "survey"), names_from = "year", values_from = "total_sf_shutoffs")
+
