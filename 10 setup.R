@@ -3,6 +3,8 @@
 library(sp)
 
 
+# got tempfiles created that aren't used
+
 if(!dir.exists(here::here("data"))) {
   dir.create(here::here("data"))
 }
@@ -28,5 +30,19 @@ if(!(file.exists(here::here("data", "earsurveyresults_2018ry.zip")))){
   download.file(EAR_url_2018, destfile = here::here("data", "earsurveyresults_2018ry.zip"))
   unzip(here::here("data", "earsurveyresults_2018ry.zip"), exdir = here::here("data"))
   unlink(temp)
+}
+
+
+if(!file.exists(here::here("data", "SDWA_GEOGRAPHIC_AREAS.csv"))) {
+  SDWA_url <- "https://echo.epa.gov/files/echodownloads/SDWA_latest_downloads.zip"
+  
+  temp_dir <- tempdir()
+  download.file(SDWA_url, destfile = file.path(temp_dir, "SDWA_latest_downloads.zip"))
+  unzip(file.path(temp_dir, "SDWA_latest_downloads.zip"), 
+        files = c("SDWA_GEOGRAPHIC_AREAS.csv", "SDWA_REF_CODE_VALUES.csv"),
+        exdir = here::here("data"))
+  unlink(temp_dir)
+  
+  
 }
 

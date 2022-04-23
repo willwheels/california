@@ -52,7 +52,7 @@ rm(EAR_data_2018)
 cali_geojson <- read_sf(here::here("data", "California_Drinking_Water_System_Area_Boundaries.geojson"))
 
 cali_data <- cali_geojson %>%
-  select(SABL_PWSID, WATER_SYSTEM_NAME, geometry) %>%
+  select(SABL_PWSID, POPULATION, WATER_SYSTEM_NAME, geometry) %>%
   rename(PWSID = SABL_PWSID) %>%
   left_join(EAR_standard_rates) %>%
   left_join(EAR_shutoffs) %>%
@@ -79,13 +79,15 @@ v18 <- load_variables(2018, "acs5", cache = TRUE)
 ## http://api.census.gov/data/key_signup.html
 
 ## I need to do this on DMAP, but locally should only have to do once
-options(tigris_use_cache = TRUE)
-source(here::here("will_api_key.R"))
-census_api_key(wills_api_key, install = TRUE)
+# options(tigris_use_cache = TRUE)
+# source(here::here("will_api_key.R"))
+# census_api_key(wills_api_key, install = TRUE)
+# 
+# readRenviron("~/.Renviron")
 
-readRenviron("~/.Renviron")
-
-
+## Finally, we strongly suggest that you clean out unnecessary columns from your data prior to projection
+## from areal vignette
+## I did not do this
 
 cali_acs_income <- get_acs(state = "CA", geography = "block group",
                     variables = c(median_income = "B19013_001"),
@@ -102,25 +104,44 @@ cali_acs_income2 <- st_transform(cali_acs_income, crs = 26915) %>%
 cali_data <- st_transform(cali_data, crs = 26915) %>%
   st_buffer(., dist = 0)
 
+cali_data_merge <- cali_data %>%
+  select(PWSID, geometry)
 
-##### for wes
+cali_data <- cali_data 
 
 cali_acs_income_tract <- get_acs(state = "CA", geography = "tract",
                                  variables = c(median_income = "B19013_001"),
                                  geometry = TRUE)
 
 
-cali_acs_income_tract2 <- st_transform(cali_acs_income_tract, crs = 26915) 
+cali_acs_income_tract <- cali_acs_income_tract %>%
+  st_drop_geometry() %>%
+  select(-NAME, -variable, -moe) %>%
+  rename(estimate_tract = estimate, GEOID_tract = GEOID)
+
+cali_acs_income2 <- cali_acs_income2 %>%
+  mutate(GEOID_tract = substr(GEOID, 1, 11)) %>%
+  left_join(cali_acs_income_tract) %>%
+  mutate(estimate = if_else(is.na(estimate), estimate_tract, estimate))
+
+sum(is.na(cali_acs_income2$estimate))
+
+cali_acs_income2 <- cali_acs_income2 %>%
+  select(GEOID, estimate, geometry) %>%
+  drop_na()
+
+##### for wes
+#cali_acs_income_tract2 <- st_transform(cali_acs_income_tract, crs = 26915)
 
 
-cali_income_merged <- st_join(cali_data, cali_acs_income_tract2)
+#cali_income_merged <- st_join(cali_data, cali_acs_income_tract2)
 
-save(cali_income_merged, file = "cali_income_merged.Rda")
+#save(cali_income_merged, file = "cali_income_merged.Rda")
 
 ## verify all true for interpolation
 ar_validate(cali_acs_income2, cali_data, varList = "estimate", verbose = TRUE)
 
-cali_interpolated_inc <- aw_interpolate(cali_data,
+cali_interpolated_inc <- aw_interpolate(cali_data_merge,
                                     tid = PWSID,
                                     source = cali_acs_income2,
                                     sid = GEOID,
@@ -130,8 +151,34 @@ cali_interpolated_inc <- aw_interpolate(cali_data,
 
 sum(is.na(cali_interpolated_inc$estimate))
 
-## 693/4672 have no interpolated estimate! need to work on that
-## (numbers changed slightly after new pulls)
+## dropping na tracts = only 31 NA systems
+
+ca_poverty <- get_acs(state = "CA", geography = "tract",
+                   variables = "B06012_002",
+                   summary_var = "B06012_001",
+                   geometry = TRUE)
+
+ca_poverty <- ca_poverty %>%
+  mutate(pct_poverty = (estimate/summary_est)*100) %>%
+  drop_na()
+
+cali_pct_poverty2 <- st_transform(ca_poverty, crs = 26915) %>%
+  select(GEOID, geometry, pct_poverty)
+
+
+ar_validate(cali_pct_poverty2, cali_data, varList = "pct_poverty", verbose = TRUE)
+
+
+cali_interpolated_poverty <- aw_interpolate(cali_data %>% select(PWSID, geometry),
+                                          tid = PWSID,
+                                          source = cali_pct_poverty2,
+                                          sid = GEOID,
+                                          weight = "sum",
+                                          output = "sf",
+                                          intensive = "pct_poverty")
+
+# only 23 NA
+sum(is.na(cali_interpolated_poverty$pct_poverty))
 
 ## redo interpolatios by race
 ## stolen from some Datacamp slides 
@@ -229,6 +276,7 @@ cali_interpolated_all <- cali_interpolated_inc %>%
   left_join(st_drop_geometry(cali_interpolated_black)) %>%
   left_join(st_drop_geometry(cali_interpolated_white)) %>%
   left_join(st_drop_geometry(cali_interpolated_hispanic)) %>%
+  left_join(st_drop_geometry(cali_interpolated_poverty)) %>%
   rename(median_income = estimate)
 
 
@@ -252,6 +300,7 @@ violation_data2 <- violation_data %>%
 
 cali_interpolated_all <- cali_interpolated_all %>%
   left_join(violation_data2) %>% 
+  left_join(st_drop_geometry(cali_data)) %>%
   mutate(pct_income = wr_12_hcf_total_w_bill*12/median_income) 
 
 load(here::here("data", "thm.Rda"))
